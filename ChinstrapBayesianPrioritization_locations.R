@@ -118,7 +118,7 @@ model_data%>%
   ggplot(aes(season_starting,penguin_count,colour=accuracy_factor))+geom_point()+
   facet_wrap(site_id~.)
 
-# I know Harmony Point have had issues in past estimation, so let's check
+# Harmony Point have had issues in past estimations, so let's check
 
 model_data%>%
   filter(site_id %in% c("HARM"))%>%
@@ -183,14 +183,8 @@ plot(gap_stat,type = "b", xlab = "k", ylab = expression(Gap[k]),
      main = "", do.arrows = TRUE,ylim = c(0, 0.4),
      arrowArgs = list(col="red3", length=1/16, angle=90, code=3))
 
-
-
-#save("gap_analysis.pdf",width = 6, height = 4, dpi = 600) # doesn't work 
-
-
 hc <- hclust(dist(colony_cluster_data$log_size), method = "complete")
 
-?hclust
 
 # First, create a color vector based on location
 locations <- colony_cluster_data$location
@@ -198,11 +192,11 @@ unique_locations <- unique(locations)
 location_colors <- setNames(rainbow(length(unique_locations)), unique_locations)
 leaf_colors <- location_colors[locations]
 
-# Color the dendrogram leaves by location
+# color the dendrogram leaves by location
 dend <- as.dendrogram(hc)
 labels_colors(dend) <- leaf_colors[order.dendrogram(dend)]
 
-# Plot with colored leaves
+# plot with colored leaves
 plot(dend, 
      horiz = TRUE, 
      main = "",
@@ -211,18 +205,13 @@ plot(dend,
      #leaflab = "textlike",  # Show labels
      cex = 0.1)  # Adjust text size
 
-# Add a legend
+# add legend
 legend("topleft", 
        legend = unique_locations,
        col = location_colors[unique_locations],
        pch = 16,
        title = "Location",
        cex = 0.8)
-
-
-
-
-##ggsave("cluster.pdf", width = 6, height = 4, dpi = 600)
 
 k_clusters <- 4
 
@@ -299,16 +288,13 @@ count_data <- model_data_clean %>%
   )
 
 
-
-
-
-
 # with the exception of AP that has no large colonies, all other sectors have 
 # the three categories
 # we can also see that the large colonies have the least amount of counts
  
 
 # 6. Bayesian model with Student-t distribution --------------------------
+
 interaction_model_t <- brm(
   bf(log_count ~ centered_year * location +
        (centered_year | site_id) +
@@ -390,8 +376,6 @@ print(trace_plot)
 # Save as PDF (high resolution)
 
 
-
-
 # Posterior predictive check
 y_rep <- posterior_predict(interaction_model_t, ndraws = 500)
 ppc_dens_overlay(y = interaction_model_t$data$log_count, yrep = y_rep) +
@@ -399,7 +383,6 @@ ppc_dens_overlay(y = interaction_model_t$data$log_count, yrep = y_rep) +
   theme_bw()+xlim(-10,20)
 
 # Save as PDF (high resolution)
-
 
 
 # LOO with moment matching (requires save_pars = TRUE)
@@ -466,10 +449,7 @@ ggplot(accuracy_effects,aes(as.factor(accuracy),slope_adj))+
   ggtitle(label="b. Random slope")
 
 
-
-
 #ggsave("Results/accuracy_effects_plots.pdf", width = 10, height = 9, dpi = 600)
-
 
 # 9. Site-level random effects and correlation ---------------------------
 site_effects <- interaction_model_t %>%
@@ -489,20 +469,19 @@ site_effects <- interaction_model_t %>%
     names_glue = "{effect_type}_{.value}"
   )
 
-
-# Get fixed effects
+# get fixed effects
 fixed_eff <- (fixef(interaction_model_t))
 
 fixed_eff
 
 global_trend <- fixed_eff["centered_year", "Estimate"]
 
-# Get the INTERACTION terms (slope differences by location)
-# These are the ones with "centered_year:location" in the name
+# get the INTERACTION terms (slope differences by location)
+# these are the ones with "centered_year:location" in the name
 interaction_names <- grep("centered_year:location", rownames(fixed_eff), value = TRUE)
 location_slope_effects <- fixed_eff[interaction_names, "Estimate"]
 
-# Clean up names (remove "centered_year:" prefix)
+# clean up names (remove "centered_year:" prefix)
 names(location_slope_effects) <- gsub("centered_year:location", "", interaction_names)
 
 print(location_slope_effects)  # Should show SSI, EI, SOI
@@ -519,7 +498,7 @@ if(!"location" %in% colnames(site_effects)) {
 # Calculate total slope for each site
 site_effects <- site_effects %>%
   mutate(
-    # Get location slope effect for this site (0 for reference location, likely "AP")
+    #  location slope effects for this site (0 for reference location, likely "AP")
     location_slope_effect = case_when(
       location == "SSI" ~ location_slope_effects["SSI"],
       location == "EI" ~ location_slope_effects["EI"],
@@ -532,23 +511,19 @@ site_effects <- site_effects %>%
     pct_change_3gen = (exp(total_slope * 3 * GENERATION_LENGTH) - 1) * 100
   )
 
-# Check BAIL now
+# check one colony to evaluate if worked
+
 site_effects %>% filter(site_id == "BAIL") %>%
   select(site_id, location, slope_mean, location_slope_effect, total_slope, pct_change_3gen)
 
-
-# Check BAIL (should be in SSI)
+# check BAIL (should be in SSI)
 data.frame(site_effects %>% filter(site_id == "BAIL") )
 
 
-
-
-
-# Add size category and colony size info
+# add size category and colony size info
 colony_info <- model_data_clean %>%
   group_by(site_id) %>%
-  
-  
+   
   summarise(
     first_year = min(season_starting, na.rm = TRUE),
     last_year = max(season_starting, na.rm = TRUE),
@@ -627,7 +602,7 @@ model_data_clean %>%
   filter(site_id=="BAIL")%>%
   ggplot(aes(season_starting,penguin_count))+geom_point()
 
-# Create the two plots separately
+# create the two plots separately
 mappt <- ggplot() +
   geom_sf(data = FAO, fill = NA, colour = "grey30") +
   geom_sf(data = locations, fill = NA, colour = "steelblue", linewidth = 1) +
@@ -699,7 +674,7 @@ colony_info <- model_data_clean %>%
          weight = mean_count / total_pop)
 
 
-# 10. Derive percent change over 3 generations (28.2 years) -------------
+# derive percent change over 3 generations (28.2 years) -------------
 # For each site, compute total slope = b_centered_year + interaction + r_site_id
 population_draws <- interaction_model_t %>%
   spread_draws(b_centered_year,
@@ -741,7 +716,7 @@ population_risk <- population_draws %>%
 
 
 
-# 11. Summarize population-level risk ------------------------------------
+# summarize population-level risk ------------------------------------
 n_draws <- nrow(population_risk)
 
 pop_summary <- population_risk %>%
@@ -774,7 +749,7 @@ pop_summary <- population_risk %>%
 
 print(pop_summary)
 
-# 12. Create final risk table --------------------------------------------
+# final risk table --------------------------------------------
 risk_table <- data.frame(
   Metric = c("Population trend (% change)",
              "Risk of ≥30% decline",
@@ -809,7 +784,7 @@ write.csv(risk_table,"Results/risk_table_D1.csv")
 head(population_draws)
 
 
-# Compute size_risk from population_draws
+# compute size_risk from population_draws
 region_risk <- population_draws %>%
   group_by(location, .draw) %>%
   summarise(
@@ -830,7 +805,7 @@ region_risk <- population_draws %>%
 
 
 
-# Create the table
+# crate the table
 risk_table_region <- region_risk %>%
   mutate(
     `Population share` = paste0(round(contribution * 100, 1), "%"),
@@ -845,13 +820,11 @@ risk_table_region <- region_risk %>%
   select(location, `Population share`, `Median % change [95% CI]`,
          `Risk of ≥30% decline`, `Risk of ≥50% decline`)
 
-# Print the table
+
 print(risk_table_region)
 
-# Save as CSV
+# save as csv
 write.csv(risk_table_region, "Results/location_risk_table.csv", row.names = FALSE)
-
-
 
 
 # -------- gap map--------------
@@ -867,7 +840,7 @@ sites<-model_data_clean%>%
   summarise(lat=mean(lat))%>%
   select(site_id,size_category)
 
-# Create the grouped summary
+# create the grouped summary
 site_summary <- site_effects%>%
   mutate(n_years_group = cut(n_years, 
                              breaks = c(0, 5, 10, 20, 30, 40, 60),
@@ -890,11 +863,7 @@ site_summary <- site_effects%>%
   )
 
 
-
-
-
-
-# Get y-position (adjust multiplier for  log scale)
+# get y-position (adjust multiplier for  log scale)
 y_max <- max(model_data_clean$penguin_count, na.rm = TRUE) * 1.5
 
 count_data<-count_data%>%
@@ -977,11 +946,8 @@ count_data<-count_data%>%
 
 
 
-
-
-
 ggsave("Results/gap_priorities.png", width = 8, height = 8, dpi = 600)
 
 
 
-# End of script
+# this is the end, beautiful frend, the end.
